@@ -2,7 +2,7 @@
 """
 Created on Wed May 31 10:23:43 2017
 
-@author: FryingNemo
+
 """
 from gui import GUI
 from PyQt5.QtWidgets import QApplication
