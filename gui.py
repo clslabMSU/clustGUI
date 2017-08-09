@@ -188,7 +188,7 @@ class GUI(QMainWindow):
             self.label_b.append(new_data)
             #print(len(label_b_dict))
             #print(label_b)
-            self.label_b_dict[len(self.label_b_dict) + 1] = ["AF" + data_name ]
+            self.label_b_dict[len(self.label_b_dict) + 1] = [ data_name ]
         elif s == "gt":
             self.gt.append(np.transpose(new_data))
             self.gt_dict[len(self.data)] = [data_name,num_rows,num_cols,  "Imported"]
@@ -295,13 +295,13 @@ class GUI(QMainWindow):
     
     def showInternal(self):
         i_view = QTableWidget()
-        h = ["Dataset", "Clustering algorithm", "Silhouette", "DB", "Xie bienie", "Dunn", "CH" ]
+        h = ["Dataset", "Clustering algorithm", "Silhouette", "DB", "Xie bienie", "Dunn", "CH", "I", "SD", "SDb_w", "CVNN" ]
         i_view.setRowCount(len(self.internal_dict))
-        i_view.setColumnCount(7)
+        i_view.setColumnCount(11)
         i_view.setHorizontalHeaderLabels(h)
         i_view.setWindowTitle("Internal Validation view")
         for i in range(1, len(self.internal_dict) + 1 ):
-            for c in range(7):
+            for c in range(11):
                 item = QTableWidgetItem()
                 item.setText(str(self.internal_dict[i][c]))
                 i_view.setItem(i-1, c, item)
@@ -455,7 +455,7 @@ class GUI(QMainWindow):
         self.xb = QCheckBox("Xie_biene")
         self.dunn =  QCheckBox("Dunn")
         self.ch = QCheckBox("CH")
-        
+                
         temp2.addWidget(self.sil)
         temp2.addWidget(self.db)
         temp2.addWidget(self.xb)
@@ -547,12 +547,21 @@ class GUI(QMainWindow):
         self.xb = QCheckBox("Xie_biene")
         self.dunn =  QCheckBox("Dunn")
         self.ch = QCheckBox("CH")
+
+        self.I  = QCheckBox("I")
+        self.SD = QCheckBox("SD")
+        self.SDb_w = QCheckBox("SBb_w")
+        self.CVNN = QCheckBox("CVNN")
         
         temp2.addWidget(self.sil)
         temp2.addWidget(self.db)
         temp2.addWidget(self.xb)
         temp2.addWidget(self.dunn)
         temp2.addWidget(self.ch)
+        temp2.addWidget(self.I)
+        temp2.addWidget(self.SD)
+        temp2.addWidget(self.SDb_w)
+        temp2.addWidget(self.CVNN)
         
         temp.addStretch(1)
         temp.addWidget(self.d_view_internal)
@@ -578,6 +587,10 @@ class GUI(QMainWindow):
         self.internalLayout.show()
     
     def internal_b(self):
+        scatL = []
+        distL = []
+        comL = []
+        sepL = []
         data_validated = self.data[self.d_view_internal.selectedIndexes()[0].row()]
         label_validated_index = []
         for i in self.l_view_internal.selectedIndexes():
@@ -586,11 +599,27 @@ class GUI(QMainWindow):
             
             labels_validated = self.label_b[i]
             result_over_k = []
+            if self.SD.isChecked():
+                for label_validated in labels_validated:
+                    num_k = np.unique(label_validated)
+                    inter_index = internal_validation.internalIndex(len(num_k))
+                    scat , dis = inter_index.SD_valid(data_validated, label_validated)
+                    scatL.append(scat)
+                    distL.append(dis)
+            if self.CVNN.isChecked():
+                for label_validated in labels_validated:
+                    num_k = np.unique(label_validated)
+                    inter_index = internal_validation.internalIndex(len(num_k))
+                    com , sep = inter_index.CVNN(data_validated, label_validated)
+                    comL.append(com)
+                    sepL.append(sep)
+                    
             for label_validated in labels_validated:
                 result = []
                 num_k = np.unique(label_validated)
                 
                 inter_index = internal_validation.internalIndex(len(num_k))
+
                 
                 if self.sil.isChecked():
                     result.append(silhouette_score(data_validated, label_validated, metric = 'euclidean'))
@@ -610,6 +639,22 @@ class GUI(QMainWindow):
                     result.append("NA")
                 if self.ch.isChecked():
                     result.append(inter_index.CH(data_validated, label_validated))
+                else:
+                    result.append("NA")
+                if self.I.isChecked():
+                    result.append(inter_index.I(data_validated, label_validated))
+                else:
+                    result.append("NA")
+                if self.SD.isChecked():
+                    result.append(inter_index.SD_valid_n(scatL, distL))
+                else:
+                    result.append("NA")
+                if self.SDb_w.isChecked():
+                    result.append(inter_index.SDbw(data_validated, label_validated))
+                else:
+                    result.append("NA")
+                if self.CVNN.isChecked():
+                    result.append(inter_index.CVNN_n(comL, sepL))
                 else:
                     result.append("NA")
                 result_over_k.append(result)
@@ -750,7 +795,7 @@ class GUI(QMainWindow):
             for i in range(len(selected_data)):
                 to_export = np.transpose(internal_to_export[i])
                 print(to_export)
-                to_export = table_result(to_export,[['k' + str(i) for i in range(2, len(to_export[0]) + 2 )]] ,[['','Sil', 'Db', 'Xb', 'Dunn', 'CH']] )
+                to_export = table_result(to_export,[['k' + str(i) for i in range(2, len(to_export[0]) + 2 )]] ,[['','Sil', 'Db', 'Xb', 'Dunn', 'CH', "I", "SD", "SDb_w", "CVNN"]] )
                 
                 writeRows(name_to_export[i] , to_export)
 
@@ -839,11 +884,3 @@ class GUI(QMainWindow):
             for i in range(len(selected_data)):
                 writeRows(name_to_export[i], np.transpose(label_to_export[i]))
                 
-                
-
-        
-if __name__ == '__main__':
-    
-    app = QApplication(sys.argv)
-    ex = Example()
-    sys.exit(app.exec_())
